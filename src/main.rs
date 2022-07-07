@@ -23,7 +23,6 @@ struct TwitterConfig {
     access_secret: String,
 }
 
-// const CODES: [i8; 5] = [0, 1, 2, 3, 4];
 const PARAMS: [(&str, &str); 2] = [("status", "eq.1"), ("select", "name,status")];
 
 const ASCII_ART: &str = r"
@@ -38,8 +37,6 @@ _|_______     --  /     \  --     ______|__
 #[tokio::main]
 async fn main() {
     println!("{}", ASCII_ART);
-
-    // loop{}
 
     let supabase = SupabaseConfig {
         anon_public: var("SUPABASE_KEY").unwrap(),
@@ -70,7 +67,7 @@ async fn main() {
 
     for beach in &beaches[0..3] {
         let (_color, emoji) = get_status_color(&beach.status);
-        let text = beach.name.to_uppercase() + " " + emoji + "\n";
+        let text = emoji.to_owned() + " " + beach.name.to_uppercase().as_str() + "\n";
 
         record.push_str(text.as_str());
     }
