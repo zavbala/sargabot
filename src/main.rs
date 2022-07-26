@@ -23,6 +23,8 @@ struct TwitterConfig {
     access_secret: String,
 }
 
+const WEBSITE: &str = "https://sargazo.vercel.app/";
+
 const PARAMS: [(&str, &str); 2] = [("status", "eq.1"), ("select", "name,status")];
 
 const ASCII_ART: &str = r"
@@ -71,6 +73,10 @@ async fn main() {
 
         record.push_str(text.as_str());
     }
+
+    record.push_str("\n");
+    record.push_str("Check Full List Here: \n");
+    record.push_str(WEBSITE);
 
     println!("{}", record);
 
