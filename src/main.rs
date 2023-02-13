@@ -1,55 +1,27 @@
-use anyhow::Result;
 use rand::prelude::SliceRandom;
 use rand::thread_rng;
 use reqwest::header::{HeaderMap, AUTHORIZATION, CONTENT_TYPE};
-use serde::Deserialize;
 use std::env::var;
 
-#[derive(Deserialize)]
-struct Beach {
-    name: String,
-    status: i8,
-}
+mod utils;
+use utils::{get_status_color, retrieve_data_from_rest};
 
-struct SupabaseConfig {
-    url: String,
-    anon_public: String,
-}
+mod twitter;
+use twitter::make_tweet;
 
-struct TwitterConfig {
-    consumer_key: String,
-    consumer_secret: String,
-    access_key: String,
-    access_secret: String,
-}
+mod structs;
+use structs::SupabaseConfig;
 
-const WEBSITE: &str = "https://sargazo.vercel.app/";
-
-const PARAMS: [(&str, &str); 2] = [("status", "eq.1"), ("select", "name,status")];
-
-const ASCII_ART: &str = r"
-_\/_                 |                _\/_
-/o\\             \       /            //o\
- |                 .---.                |
-_|_______     --  /     \  --     ______|__
-         `~^~^~^~^~^~^~^~^~^~^~^~`
-
-";
+mod constant;
+use constant::{ASCII_ART, MESSAGE, WEBSITE};
 
 #[tokio::main]
 async fn main() {
     println!("{}", ASCII_ART);
 
     let supabase = SupabaseConfig {
-        anon_public: var("SUPABASE_KEY").unwrap(),
         url: var("SUPABASE_URL").unwrap(),
-    };
-
-    let twitter = TwitterConfig {
-        consumer_key: var("TW_CONSUMER_KEY").unwrap(),
-        consumer_secret: var("TW_CONSUMER_SECRET").unwrap(),
-        access_key: var("TW_ACCESS_KEY").unwrap(),
-        access_secret: var("TW_ACCESS_SECRET").unwrap(),
+        anon_public: var("SUPABASE_KEY").unwrap(),
     };
 
     let mut owned_str = "Bearer ".to_owned();
@@ -75,56 +47,15 @@ async fn main() {
     }
 
     record.push_str("\n");
-    record.push_str("Check Full List Here: \n");
+    record.push_str(MESSAGE);
     record.push_str(WEBSITE);
 
     println!("{}", record);
 
-    match make_tweet(twitter, record).await {
-        Ok(()) => println!("{}", "Posted"),
-        _ => println!("{}", "Failed"),
+    match make_tweet(record).await {
+        Ok(()) => println!("{}", "\nSuccess ✅"),
+        _ => println!("{}", "\nFail ❌"),
     }
-}
-fn get_status_color(code: &i8) -> (&'static str, &'static str) {
-    match code {
-        4 => ("red", "🔴"),
-        3 | 2 => ("yellow", "🟡"),
-        1 | 0 => ("green", "🟢"),
-        _ => ("", ""),
-    }
-}
-
-async fn make_tweet(config: TwitterConfig, content: String) -> Result<()> {
-    let consumer = egg_mode::KeyPair::new(config.consumer_key, config.consumer_secret);
-    let access = egg_mode::KeyPair::new(config.access_key, config.access_secret);
-    let token = egg_mode::Token::Access { consumer, access };
-
-    if egg_mode::auth::verify_tokens(&token).await.is_ok() {
-        //
-    }
-
-    let tweet = egg_mode::tweet::DraftTweet::new(content);
-    tweet.send(&token).await?;
-
-    Ok(())
-}
-
-async fn retrieve_data_from_rest(
-    config: SupabaseConfig,
-    headers: HeaderMap,
-) -> Result<Vec<Beach>, reqwest::Error> {
-    let client = reqwest::Client::new();
-
-    let resp = client
-        .get(config.url + "/rest/v1/beaches")
-        .query(&PARAMS)
-        .headers(headers)
-        .send()
-        .await?;
-
-    let data = resp.json().await?;
-
-    Ok(data)
 }
 
 #[cfg(test)]
